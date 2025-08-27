@@ -1,18 +1,20 @@
 Parameters:
   pPCAConsumerRoleName:
-    Description: Name of the Private CA Consumer role, leave blank to skip this role
-    Default: "PCARole"
+    Description: Name of the Private CA Consumer role. Leave blank to skip this role.
+    Default: "PCAConsumer"
     Type: String
   pPCAConsumerPermissionsBoundary:
-    Description: Permissions Boundary ARN for PCA Consumer, this policy must be pre-defined
+    Description: Permissions Boundary ARN for PCA Consumer, this policy must be pre-defined. Leave blank to skip the permissions boundary. AWS best practices recommends using a permissions boundary.
     Type: String
+    Default: ""
   pPCAConsumerAccounts:
-    Description: Comma separated list of AWS Account numbers for the principal that assumes the Private CA Consumer role, leave blank to use org or the local PCA account
+    Description: Comma separated list of AWS Account numbers for the principal that assumes the Private CA Consumer role. Leave blank to use the local PCA account only in the trust policy.
     Type: CommaDelimitedList
+    Default: ""
   pPCAExternalId:
-    Description: External ID to be used when assuming the roles, default is ExternalPCARole
+    Description: External ID to be used when assuming the roles, e.g. ExternalPCARole. Leave blank to use the local PCA account only. AWS best practices suggests using an external ID with cross-account roles.
     Type: String
-    Default: "ExternalPCARole"
+    Default: ""
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -47,10 +49,14 @@ Conditions:
   UseLocalPCAAccountForConsumer: !Equals
     - !Join ["", !Ref pPCAConsumerAccounts]
     - ""
-  UseExternalId: !Not
-    - !Equals
-      - !Ref pPCAExternalId
-      - ""
+  # No need for an external ID if not using a cross-account role
+  UseExternalId: !And
+    - !Not 
+      - !Condition UseLocalPCAAccountForConsumer
+    - !Not
+      - !Equals
+        - !Ref pPCAExternalId
+        - ""
 
 Resources:
   rPCAConsumerRole:
